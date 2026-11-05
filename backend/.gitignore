@@ -1,0 +1,9 @@
+node_modules
+# 빌드 결과물
+dist
+*.tsbuildinfo
+# Keep environment variables out of version control
+.env
+
+# 로컬 JSON 데이터 (사용자·출퇴근·신청·이력). 서버가 처음 실행될 때 만들어진다.
+/data
