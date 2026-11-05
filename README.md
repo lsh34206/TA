@@ -61,6 +61,31 @@
 
 ### 2.2 설치와 실행
 
+**빠른 준비** — 스크립트 하나(`scripts/setup.mjs`)가 GitHub에서 내려받기, `.env` 복사, 의존성 설치를 한 번에 합니다. 외부 패키지 없이 Node와 git만 쓰므로 Windows·macOS·Linux에서 같게 동작합니다.
+
+```bash
+# 아무것도 없는 상태에서: 스크립트 파일 하나만 받아 실행 (Windows PowerShell은 curl.exe)
+curl -fsSLO https://raw.githubusercontent.com/lsh34206/TA/main/scripts/setup.mjs
+node setup.mjs --clone --install     # git clone → TA 폴더 → .env 복사 → npm install
+
+# 이미 git clone 했다면: 저장소 안에서
+node scripts/setup.mjs --install     # 또는: npm run setup:install
+```
+
+| 명령 | 동작 |
+| --- | --- |
+| `node setup.mjs --clone` | `https://github.com/lsh34206/TA.git`을 현재 위치의 `TA` 폴더로 내려받고 `backend/.env.example`을 `backend/.env`로 복사합니다. |
+| `--clone my-folder` | 내려받을 폴더 이름을 지정합니다. |
+| `--clone --repo <주소>` | 다른 저장소(포크 등)에서 내려받습니다. |
+| `--install` | `backend`·`frontend`에서 `npm install`까지 실행합니다. |
+| `--force` | 이미 있는 `.env`도 예시 파일로 덮어씁니다. 기존 파일은 `.env.bak`으로 백업합니다. |
+| (옵션 없음) | 이미 내려받은 저장소 안에서 `.env` 복사만 합니다. |
+
+- **안전하게 다시 실행할 수 있습니다.** 이미 있는 `.env`는 건드리지 않고(`--force`가 없는 한), 이미 내려받은 폴더(`.git`이 있는 곳)는 clone을 건너뜁니다. 비어 있지 않은 폴더에는 내려받지 않고 멈춥니다.
+- `.env`는 비밀 값이 들어가는 파일이라 `.gitignore`로 저장소에서 제외되어 있고, 저장소에는 예시 파일(`.env.example`)만 올라갑니다. 그래서 내려받은 직후에는 `.env`가 없고, 스크립트가 그 자리를 채워 줍니다.
+
+아래 ①②는 같은 일을 손으로 하는 방법입니다. 스크립트를 썼다면 `npm install`과 `.env` 복사는 건너뛰고 실행 명령(`npm run start:dev`, `npm run dev`)만 입력하면 됩니다.
+
 터미널 두 개를 엽니다.
 
 **① 백엔드** — `http://localhost:3000/api`
@@ -207,6 +232,7 @@ ValidationPipe → Controller → Service ─┬─▶ rules/*.ts   업무 규�
 ```
 .
 ├─ README.md, docs/                 문서
+├─ scripts/setup.mjs                내려받은 직후 준비 (.env 복사, npm install) — 루트 package.json 은 이 스크립트용
 ├─ backend/
 │  ├─ src/
 │  │  ├─ auth/          로그인·JWT·전역 가드·데코레이터

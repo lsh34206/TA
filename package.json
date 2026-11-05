@@ -1,0 +1,9 @@
+{
+  "name": "attendance-workspace",
+  "private": true,
+  "description": "근태관리 시스템 — 저장소 루트. 의존성은 backend/, frontend/ 에 각각 있습니다.",
+  "scripts": {
+    "setup": "node scripts/setup.mjs",
+    "setup:install": "node scripts/setup.mjs --install"
+  }
+}
