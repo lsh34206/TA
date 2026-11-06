@@ -380,3 +380,4 @@ holidays, allowedIps      (참조 데이터: 영업일 판정 / 접속 허용 �
 | [docs/architecture.md](docs/architecture.md) | 요청 흐름, 계층·모듈 구조, 접근 제어, 시간 처리, 프론트엔드 구조, 시나리오, 테스트 전략, 배포 구성 |
 | [docs/database.md](docs/database.md) | 저장 방식, 관계도(ER), 컬렉션별 필드, 설계 이유, 한계 |
 | [docs/api.md](docs/api.md) | API 목록, 권한, 오류 코드 |
+| [docs/sequence-diagrams.md](docs/sequence-diagrams.md) | 기능별 시퀀스 다이어그램 27개 (Mermaid 코드 + 이미지) — 로그인·출퇴근·신청·정산·관리 흐름과 오류 분기 |

@@ -1,0 +1,34 @@
+---
+title: 25 연구실 접속 IP 삭제 (리드 전용)
+---
+sequenceDiagram
+    autonumber
+    actor U as 리드
+    participant V as 화면 (AllowedIpsView)
+    participant C as 확인 창 (ConfirmModal)
+    participant A as AllowedIpsController
+    participant S as AllowedIpsService
+    participant D as DataStore
+    participant L as ActivityLog
+
+    Note over V,A: 전역 AccessGuard를 통과한 뒤 실행 (03번). 컨트롤러 전체가 @Roles('LEAD')
+    U->>V: IP 행의 [삭제] 클릭
+    V->>C: 삭제 확인 창
+    C->>V: 확인
+    V->>A: DELETE /api/allowed-ips/:id
+    A->>S: remove(user, 접속 IP, id)
+    S->>D: id로 IP 조회
+    break 등록된 IP가 없으면
+        S-->>V: 404 IP_NOT_FOUND
+    end
+    break 마지막 하나라면 (모두가 연구실에서 접속하지 못하게 됨)
+        S-->>V: 400 LAST_IP
+    end
+    break 지금 내가 접속 중인 IP라면 (스스로 접속을 잃음)
+        S-->>V: 400 CURRENT_IP
+    end
+    S->>D: IP 삭제
+    S->>D: commit() 파일 저장
+    S->>L: IP_REMOVE
+    S-->>V: 200 id
+    V->>V: 목록 다시 불러오기

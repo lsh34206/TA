@@ -1,0 +1,39 @@
+---
+title: 14 신청 취소
+---
+sequenceDiagram
+    autonumber
+    actor U as 사용자
+    participant V as 화면 (ApplicationsView)
+    participant C as 확인 창 (ConfirmModal)
+    participant A as ApplicationController
+    participant S as ApplicationService
+    participant D as DataStore
+    participant L as ActivityLog
+
+    Note over V,A: 전역 AccessGuard(JWT·IP·역할)를 통과한 뒤 실행 — 03번 참고
+    U->>V: 신청 행의 [취소] 클릭
+    V->>C: "신청을 취소할까요?" 확인 창 표시
+    alt 닫기
+        C-->>V: 아무 일도 일어나지 않음
+    else 확인
+        C->>V: confirmCancel()
+        V->>A: POST /api/applications/:id/cancel
+        A->>S: cancel(user, id, ip)
+        S->>D: 본인의 신청 조회
+        break 신청이 없으면
+            S-->>V: 404 NOT_FOUND
+        end
+        break 이미 반려·취소된 신청이면
+            S-->>V: 409 NOT_CANCELLABLE
+        end
+        break 신청 기한(전 영업일 17:00)이 지났으면
+            S-->>V: 400 DEADLINE_PASSED
+        end
+        S->>D: 상태를 CANCELLED로 변경
+        S->>D: 이 신청이 쓴 OFF가 있으면 돌려줌 (연결 해제)
+        S->>D: commit() 파일 저장
+        S->>L: APPLICATION_CANCEL
+        S-->>V: 200 신청 정보
+        V->>V: 목록과 잔여 다시 불러오기
+    end

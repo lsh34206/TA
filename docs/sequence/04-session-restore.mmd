@@ -1,0 +1,41 @@
+---
+title: 04 로그인 상태 복원과 화면 이동 (새로고침·주소 직접 입력)
+---
+sequenceDiagram
+    autonumber
+    actor U as 사용자
+    participant R as Vue Router (beforeEach)
+    participant SS as session 저장소
+    participant A as API (GET /auth/me)
+    participant V as 화면
+
+    U->>R: 새로고침 또는 주소 직접 입력
+    opt 아직 복원하지 않았다면 (session.ready = false)
+        R->>SS: localStorage의 토큰 읽기 (ta.token)
+        opt 토큰이 있으면
+            R->>A: GET /api/auth/me
+            alt 성공
+                A-->>R: user, ip, isLabIp
+                R->>SS: user · ip · isLabIp 저장, blocked 해제
+            else 401 (토큰 만료)
+                A-->>R: 401
+                R->>SS: clearSession() (토큰 삭제)
+            else 403 IP_NOT_ALLOWED
+                A-->>R: 403
+                R->>SS: blocked 기록 (user는 비어 있음)
+            end
+        end
+        R->>SS: ready = true
+    end
+    alt 공개 화면 (/login)
+        R-->>V: 이미 로그인한 상태면 대시보드로, 아니면 로그인 화면 표시
+    else 로그인이 필요한 화면
+        alt 로그인 정보 없음
+            R-->>V: /login 으로 이동
+        else 리드 전용 화면 (공휴일, 접속 IP)인데 팀원
+            R-->>V: 대시보드로 이동
+        else
+            R-->>V: 요청한 화면 표시
+        end
+    end
+    Note over V: 사용 중 토큰이 지워지면 (만료 401, 로그아웃) App.vue가 감시하다가 어느 화면에서든 /login 으로 이동

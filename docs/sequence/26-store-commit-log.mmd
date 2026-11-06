@@ -1,0 +1,30 @@
+---
+title: 26 데이터 저장과 이력 기록 (모든 쓰기 기능 공통)
+---
+sequenceDiagram
+    autonumber
+    participant S as 업무 Service
+    participant T as Table (메모리 컬렉션)
+    participant C as DataStore.commit
+    participant Q as 저장 큐 (한 번에 하나씩)
+    participant F as 데이터 파일 (backend/data)
+    participant L as ActivityLogService
+
+    S->>T: insert / update / remove — 메모리 데이터를 먼저 바꾼다
+    S->>C: commit()
+    C->>Q: 앞선 저장이 끝난 뒤 실행되도록 줄 세움
+    opt 업무 데이터가 바뀌었다면
+        Q->>F: db.json.tmp 에 전체를 기록
+        Q->>F: 이름 바꾸기로 db.json 교체 (중간에 끊겨도 반쪽 파일이 남지 않음)
+        Note over Q,F: 이름 바꾸기가 실패하면 직접 덮어쓰기. 쓰기 자체가 실패하면 "바뀜" 표시를 유지해 다음 저장에서 다시 시도
+    end
+    Q->>F: 아직 저장 안 된 새 이력 줄만 activity-log.jsonl 끝에 덧붙임 (이전 저장 실패 시에는 전체 재작성)
+    C-->>S: 저장 완료
+    Note over S,F: 저장이 실패하면 요청은 오류로 끝나지만 메모리의 변경은 되돌리지 않는다 (알려진 한계)
+    S->>L: log(행동, 사용자, IP, 상세)
+    L->>T: activityLogs.insert
+    L->>C: commit() — 위와 같은 경로
+    break 이력 저장이 실패하면
+        L-->>S: 오류를 삼키고 서버 로그에만 기록 (이력 때문에 본 업무가 실패하지 않음)
+    end
+    L-->>S: 완료

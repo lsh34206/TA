@@ -1,0 +1,20 @@
+---
+title: 20 공휴일 조회
+---
+sequenceDiagram
+    autonumber
+    actor U as 리드
+    participant V as 화면 (HolidaysView)
+    participant A as HolidaysController
+    participant S as HolidayAdminService
+    participant H as HolidayService
+
+    Note over V,A: 전역 AccessGuard(JWT·IP·역할)를 통과한 뒤 실행 — 03번 참고. 화면은 리드 전용이고 조회 API 자체는 로그인한 누구나 호출할 수 있다
+    U->>V: 공휴일 화면 열기 / 연도 변경
+    V->>A: GET /api/holidays?year=YYYY
+    A->>S: list(year)
+    S->>H: listByYear(year)
+    H-->>S: 해당 연도의 공휴일 (날짜 오름차순)
+    S-->>V: 날짜, 이름 목록
+    V-->>U: 공휴일 목록 표시
+    Note over H: 공휴일은 코드로 계산하지 않고 데이터 파일에 저장 — 신청 기한·휴일 근무 판정에 쓰인다

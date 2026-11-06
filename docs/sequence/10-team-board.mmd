@@ -1,0 +1,24 @@
+---
+title: 10 팀 보드 — 오늘 팀원별 상태 (FN-DSH-01, 리드 전용)
+---
+sequenceDiagram
+    autonumber
+    actor U as 리드
+    participant V as 화면 (DashboardView)
+    participant A as DashboardController
+    participant S as DashboardService
+    participant H as HolidayService
+    participant D as DataStore
+
+    Note over V,A: 전역 AccessGuard를 통과한 뒤 실행 (03번). @Roles('LEAD')라 팀원이 호출하면 403 FORBIDDEN
+    U->>V: 대시보드 열기
+    V->>A: GET /api/dashboard/team
+    A->>S: teamBoard()
+    S->>H: 오늘이 영업일인가?
+    S->>D: 오늘 출퇴근 기록 전체 / 오늘 유효 신청 전체 / 사용자 목록
+    loop 팀원마다 (리드 먼저, 이름순)
+        S->>S: boardStatus(출퇴근 기록, 신청 종류, 영업일)
+    end
+    Note right of S: 상태 — 근무 중, 퇴근, 연차, 반일 OFF, 재택, 주말근무 예정, 휴무일, 미출근
+    S-->>V: today, isBusinessDay, members (상태, 출퇴근 시각, 지각·조퇴)
+    V-->>U: 팀원별 상태 보드 표시

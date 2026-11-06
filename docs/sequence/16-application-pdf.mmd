@@ -1,0 +1,28 @@
+---
+title: 16 신청서 PDF 다운로드 (FN-REQ-03)
+---
+sequenceDiagram
+    autonumber
+    actor U as 사용자 (본인 또는 리드)
+    participant V as 화면 (ApplicationsView)
+    participant A as ApplicationController
+    participant S as ApplicationService
+    participant P as ApplicationPdfService
+    participant D as DataStore
+    participant L as ActivityLog
+
+    Note over V,A: 전역 AccessGuard(JWT·IP·역할)를 통과한 뒤 실행 — 03번 참고
+    U->>V: 신청 행의 [PDF] 클릭
+    V->>A: GET /api/applications/:id/pdf (Bearer 토큰 포함 fetch)
+    A->>S: renderPdf(user, id, ip)
+    S->>D: 신청, 신청자, 처리자 조회
+    break 신청이 없거나 (본인도 리드도 아니면)
+        S-->>V: 404 NOT_FOUND
+    end
+    S->>P: render(신청, 신청자, 처리자, 출력 시각)
+    P-->>S: PDF 바이너리
+    S->>L: APPLICATION_PDF
+    S-->>A: 파일 내용, 파일 이름
+    A-->>V: 200 application/pdf + Content-Disposition(한글 파일 이름)
+    V->>V: Blob으로 받아 임시 링크를 만들어 브라우저 다운로드 실행
+    V-->>U: 근태신청서_이름_대상일.pdf 저장

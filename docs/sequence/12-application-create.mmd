@@ -1,0 +1,59 @@
+---
+title: 12 신청서 제출 (FN-REQ-01)
+---
+sequenceDiagram
+    autonumber
+    actor U as 사용자
+    participant V as 화면 (ApplicationsView)
+    participant A as ApplicationController
+    participant S as ApplicationService
+    participant H as HolidayService
+    participant B as BalanceService
+    participant D as DataStore
+    participant L as ActivityLog
+
+    Note over V,A: 전역 AccessGuard(JWT·IP·역할)를 통과한 뒤 실행 — 03번 참고
+    U->>V: 유형(연차·재택·OFF·주말근무), 대상일, 사유 입력 후 제출 (재택·주말근무는 접속 IP와 시간대도 입력)
+    V->>A: POST /api/applications
+    A->>A: ValidationPipe로 형식 검사 (잘못되면 400)
+    A->>S: create(user, input, ip)
+    S->>H: 영업일 판별 함수 준비
+    break 대상일 형식이 올바르지 않으면
+        S-->>V: 400 INVALID_DATE
+    end
+    break 주말근무인데 대상일이 영업일이면
+        S-->>V: 400 NOT_NON_BUSINESS_DAY
+    end
+    break 연차·재택·OFF인데 대상일이 주말·공휴일이면
+        S-->>V: 400 NOT_BUSINESS_DAY
+    end
+    break 지금이 대상일의 전 영업일 17:00를 지났으면
+        S-->>V: 400 DEADLINE_PASSED
+    end
+    opt 재택·주말근무
+        S->>S: IP 형식, 시간 형식(HH:mm), 시작 < 종료 검사
+        S-->>V: 위반 시 400 INVALID_IP, 400 INVALID_TIME
+    end
+    S->>D: 같은 날짜의 유효 신청(승인·대기) 조회
+    break 이미 있으면
+        S-->>V: 409 DUPLICATE
+    end
+    alt 연차
+        S->>B: forUser(user, 오늘) — 잔여 연차 (17번)
+        S-->>V: 잔여가 1 미만이면 400 NO_BALANCE
+    else 재택
+        S->>D: 대상 월의 재택 신청 수 조회
+        S-->>V: 월 2회를 이미 썼다면 400 NO_BALANCE
+    else OFF
+        S->>D: 대상일에 쓸 수 있는 OFF 중 만료가 가장 빠른 것 선택
+        S-->>V: 없으면 400 NO_BALANCE
+    end
+    S->>D: 신청 저장 (상태 PENDING)
+    opt OFF 신청
+        S->>D: 선택한 OFF를 이 신청에 연결 (사용 처리)
+    end
+    S->>D: commit() 파일 저장
+    S->>L: APPLICATION_CREATE
+    S-->>V: 200 신청 정보
+    V->>V: "신청했습니다." 입력 칸 비우고 목록·잔여 다시 불러오기
+    Note over S: 검사부터 저장까지 중간에 await가 없어 동시에 들어온 신청이 끼어들 수 없다

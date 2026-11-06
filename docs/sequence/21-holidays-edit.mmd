@@ -1,0 +1,41 @@
+---
+title: 21 공휴일 등록·삭제 (리드 전용)
+---
+sequenceDiagram
+    autonumber
+    actor U as 리드
+    participant V as 화면 (HolidaysView)
+    participant C as 확인 창 (ConfirmModal)
+    participant A as HolidaysController
+    participant S as HolidayAdminService
+    participant H as HolidayService
+    participant L as ActivityLog
+
+    Note over V,A: 전역 AccessGuard를 통과한 뒤 실행 (03번). @Roles('LEAD')라 팀원이 호출하면 403 FORBIDDEN
+    alt 등록
+        U->>V: 날짜와 이름 입력 후 [등록]
+        V->>A: POST /api/holidays (date, name)
+        A->>S: add(user, ip, input)
+    else 삭제
+        U->>V: 공휴일 행의 [삭제] 클릭
+        V->>C: 삭제 확인 창
+        C->>V: 확인
+        V->>A: DELETE /api/holidays/:date
+        A->>S: remove(user, ip, date)
+    end
+    S->>S: assertChangeable(date)
+    break 날짜 형식이 올바르지 않으면
+        S-->>V: 400 INVALID_DATE
+    end
+    break 오늘 또는 오늘 이전 날짜이면 (이미 기록된 판정이 소급해서 달라질 수 있음)
+        S-->>V: 400 PAST_DATE
+    end
+    alt 등록
+        S->>H: upsert(date, name) — 있으면 이름 수정, 없으면 추가, commit()
+        S->>L: HOLIDAY_ADD
+    else 삭제
+        S->>H: remove(date), commit()
+        S->>L: HOLIDAY_REMOVE
+    end
+    S-->>V: 200
+    V->>V: 공휴일 목록 다시 불러오기

@@ -1,0 +1,30 @@
+---
+title: 02 로그인 시도 제한 (무차별 대입 방지)
+---
+sequenceDiagram
+    autonumber
+    actor U as 사용자 (또는 공격자)
+    participant S as AuthService
+    participant T as LoginThrottle
+    participant L as ActivityLog
+
+    Note over T: 키 두 개를 센다 — (IP + 아이디) 5회, IP 전체 20회 (기간 10분, 잠금 10분)
+    loop 비밀번호가 틀릴 때마다 (1~4번째)
+        U->>S: 로그인 시도
+        S->>T: assertAllowed(ip, loginId)
+        T-->>S: 통과
+        S->>T: recordFailure(ip, loginId)
+        S->>L: LOGIN_FAILED
+        S-->>U: 401 INVALID_CREDENTIALS
+    end
+    U->>S: 5번째 실패
+    S->>T: recordFailure → 잠금 시작 (lockedUntil = 지금 + 10분)
+    S->>L: LOGIN_FAILED, LOGIN_LOCKED (잠금은 시작할 때 한 번만 기록)
+    S-->>U: 401 INVALID_CREDENTIALS
+    U->>S: 잠긴 동안 다시 시도
+    S->>T: assertAllowed(ip, loginId)
+    T-->>U: 429 TOO_MANY_ATTEMPTS (retryAfterSeconds)
+    Note over S,T: 비밀번호 검증(scrypt) 전에 막으므로 서버 CPU도 아낀다
+    U->>S: 10분 뒤 다시 시도
+    S->>T: assertAllowed → 통과
+    Note over T: 로그인에 성공하면 해당 (IP + 아이디) 횟수만 지운다. IP 전체 횟수는 유지. 서버를 재시작하면 모두 초기화

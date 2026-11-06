@@ -1,0 +1,29 @@
+---
+title: 19 이력 조회 (FR-LOG-01)
+---
+sequenceDiagram
+    autonumber
+    actor U as 사용자 (팀원 또는 리드)
+    participant V as 화면 (LogsView)
+    participant A as LogsController
+    participant S as LogsService
+    participant D as DataStore
+
+    Note over V,A: 전역 AccessGuard(JWT·IP·역할)를 통과한 뒤 실행 — 03번 참고
+    U->>V: 이력 화면 열기
+    opt 리드라면
+        V->>A: GET /api/dashboard/team (사용자 필터에 쓸 팀원 목록, 10번)
+    end
+    V->>A: GET /api/logs?limit&category&userId&from&to
+    A->>S: list(user, filter)
+    break 날짜 형식이 올바르지 않거나 시작일이 종료일보다 늦으면
+        S-->>V: 400 INVALID_DATE, 400 INVALID_RANGE
+    end
+    S->>D: 이력 조회 — 팀원은 본인 것만, 리드는 전체 (사용자 필터 가능)
+    S->>S: 분류(접속·출퇴근·신청·설정), 기간(KST), 이전 페이지 위치(before) 조건으로 거르기
+    S->>S: 최신순 정렬, limit개만 (기본 100)
+    S-->>V: 이력 목록 (행동, 분류, 사용자, IP, 상세, 시각)
+    V-->>U: 분류 탭·날짜별 묶음으로 표시, 접속 실패·차단은 경고 색
+    U->>V: 필터 변경 또는 [더 보기]
+    V->>A: GET /api/logs (필터 + 마지막 id를 before로)
+    Note over V: 요청마다 번호를 붙여, 필터를 바꾸는 사이 늦게 도착한 이전 응답은 버린다

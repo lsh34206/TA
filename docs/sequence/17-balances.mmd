@@ -1,0 +1,25 @@
+---
+title: 17 내 연차·재택·OFF 잔여 조회 (FN-BAL-01)
+---
+sequenceDiagram
+    autonumber
+    actor U as 사용자
+    participant V as 화면 (ApplicationsView)
+    participant A as BalanceController
+    participant B as BalanceService
+    participant R as computeBalances (규칙)
+    participant D as DataStore
+
+    Note over V,A: 전역 AccessGuard(JWT·IP·역할)를 통과한 뒤 실행 — 03번 참고
+    U->>V: 신청 화면 열기 (제출·취소·승인·반려 뒤에도 다시 조회)
+    V->>A: GET /api/balances/me
+    A->>B: forUser(user, 오늘)
+    B->>D: 유효 신청(반려·취소 제외)과 OFF 지급분 조회
+    B->>R: computeBalances(입사일, 기준일, 신청, OFF 지급분)
+    R->>R: 연차 = 입사일 기준 매월 +1일 적립 − 사용한 연차
+    R->>R: 재택 = 이번 달 2회 − 이번 달 사용 (이월 없음)
+    R->>R: OFF = 기준일에 유효한 미사용 지급분 (지급일부터 30일), 가장 빨리 만료되는 날짜
+    R-->>B: annual, remote, off
+    B-->>V: 연차·재택·OFF 잔여
+    V-->>U: 잔여 표시
+    Note over B: 같은 계산을 대시보드 카드(09)와 월별 정산(18)도 재사용한다

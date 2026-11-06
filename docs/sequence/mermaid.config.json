@@ -1,0 +1,14 @@
+{
+  "theme": "default",
+  "themeVariables": {
+    "fontFamily": "Malgun Gothic, Apple SD Gothic Neo, Noto Sans CJK KR, sans-serif"
+  },
+  "sequence": {
+    "mirrorActors": true,
+    "useMaxWidth": false,
+    "wrap": true,
+    "width": 190,
+    "messageFontSize": 14,
+    "noteFontSize": 13
+  }
+}

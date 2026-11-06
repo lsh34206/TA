@@ -1,0 +1,29 @@
+---
+title: 23 연구실 접속 IP 등록 (리드 전용)
+---
+sequenceDiagram
+    autonumber
+    actor U as 리드
+    participant V as 화면 (AllowedIpsView)
+    participant A as AllowedIpsController
+    participant S as AllowedIpsService
+    participant D as DataStore
+    participant L as ActivityLog
+
+    Note over V,A: 전역 AccessGuard를 통과한 뒤 실행 (03번). 컨트롤러 전체가 @Roles('LEAD')
+    U->>V: IP와 이름(선택) 입력 후 [등록]
+    V->>A: POST /api/allowed-ips (ip, label)
+    A->>S: add(user, 접속 IP, input)
+    S->>S: IP 정규화 (공백 제거, 소문자, IPv4-mapped IPv6와 ::1 변환)
+    break IP 형식이 올바르지 않으면
+        S-->>V: 400 INVALID_IP
+    end
+    S->>D: 같은 IP가 이미 있는지 조회
+    break 이미 등록되어 있으면
+        S-->>V: 409 DUPLICATE_IP
+    end
+    S->>D: IP 저장
+    S->>D: commit() 파일 저장
+    S->>L: IP_ADD
+    S-->>V: 200 id, ip, label, current
+    V->>V: 목록 다시 불러오기

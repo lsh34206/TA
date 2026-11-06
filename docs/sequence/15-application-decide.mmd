@@ -1,0 +1,42 @@
+---
+title: 15 신청 승인·반려 (FN-REQ-02, 리드 전용)
+---
+sequenceDiagram
+    autonumber
+    actor U as 리드
+    participant V as 화면 (ApplicationsView)
+    participant A as ApplicationController
+    participant S as ApplicationService
+    participant D as DataStore
+    participant L as ActivityLog
+
+    Note over V,A: 전역 AccessGuard를 통과한 뒤 실행 (03번). @Roles('LEAD')라 팀원이 호출하면 403 FORBIDDEN
+    U->>V: 팀 신청 목록에서 대기 중인 신청 선택
+    alt 승인
+        U->>V: [승인] 클릭
+        V->>A: POST /api/applications/:id/approve
+    else 반려
+        U->>V: [반려] 클릭 → 사유 입력 창에서 사유 입력 후 확인
+        V->>A: POST /api/applications/:id/reject (note)
+    end
+    A->>S: decide(lead, id, 승인 또는 반려, note, ip)
+    S->>D: 신청 조회
+    break 신청이 없으면
+        S-->>V: 404 NOT_FOUND
+    end
+    break 본인 신청이면
+        S-->>V: 403 SELF_DECISION
+    end
+    break 대기(PENDING) 상태가 아니면
+        S-->>V: 409 ALREADY_DECIDED
+    end
+    alt 승인
+        S->>D: 상태 APPROVED, 처리자·처리 시각·메모 기록
+    else 반려
+        S->>D: 상태 REJECTED, 처리자·처리 시각·사유 기록
+        S->>D: 이 신청이 쓴 OFF가 있으면 돌려줌
+    end
+    S->>D: commit() 파일 저장
+    S->>L: APPLICATION_APPROVE 또는 APPLICATION_REJECT
+    S-->>V: 200 신청 정보
+    V->>V: 목록과 잔여 다시 불러오기

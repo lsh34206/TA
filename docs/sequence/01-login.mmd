@@ -1,0 +1,43 @@
+---
+title: 01 로그인 (FN-SYS-02)
+---
+sequenceDiagram
+    autonumber
+    actor U as 사용자
+    participant V as 화면 (LoginView)
+    participant A as AuthController
+    participant S as AuthService
+    participant T as LoginThrottle
+    participant X as AccessService
+    participant D as DataStore
+    participant L as ActivityLog
+
+    U->>V: 아이디·비밀번호 입력 후 로그인
+    V->>A: POST /api/auth/login (공개 API, 토큰 없이 호출)
+    A->>S: login(loginId, password, ip)
+    S->>T: assertAllowed(ip, loginId)
+    break 잠금 중이면 (자세한 흐름은 02번)
+        S-->>V: 429 TOO_MANY_ATTEMPTS (retryAfterSeconds)
+    end
+    S->>D: users에서 loginId로 계정 조회
+    S->>S: scrypt로 비밀번호 검증 (없는 계정도 더미 해시로 같은 시간 소요)
+    break 계정이 없거나 비밀번호가 틀리면
+        S->>T: recordFailure(ip, loginId)
+        S->>L: LOGIN_FAILED (이번에 잠기면 LOGIN_LOCKED도 기록)
+        S-->>V: 401 INVALID_CREDENTIALS
+    end
+    S->>T: recordSuccess (해당 아이디의 실패 횟수 초기화)
+    S->>X: isAllowed(userId, ip, now)
+    X->>D: 연구실 IP 목록 / 오늘의 재택·주말근무 신청 조회
+    X-->>S: 허용 여부
+    break 연구실 IP도 아니고 신청한 IP·시간대도 아니면
+        S->>L: ACCESS_DENIED
+        S-->>V: 403 IP_NOT_ALLOWED
+    end
+    S->>L: LOGIN
+    S->>S: JWT 발급 (sub = 사용자 id, 유효 12시간)
+    S-->>V: 200 token, user
+    V->>V: 토큰을 localStorage에 저장 (ta.token)
+    V->>A: GET /api/auth/me (Bearer 토큰)
+    A-->>V: user, ip, isLabIp
+    V-->>U: 대시보드로 이동

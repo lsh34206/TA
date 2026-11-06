@@ -1,0 +1,13 @@
+---
+title: 27 서버 상태 확인
+---
+sequenceDiagram
+    autonumber
+    actor M as 운영자 / 모니터링 도구
+    participant G as AccessGuard (전역)
+    participant H as HealthController
+
+    M->>G: GET /api/health (토큰 없이)
+    G->>G: @Public API라서 JWT·IP·역할 검사를 건너뜀
+    G->>H: check()
+    H-->>M: 200 status ok

@@ -1,0 +1,23 @@
+---
+title: 11 미기록 건 조회 (FN-DSH-03)
+---
+sequenceDiagram
+    autonumber
+    actor U as 사용자
+    participant V as 화면 (DashboardView)
+    participant A as DashboardController
+    participant S as DashboardService
+    participant AT as AttendanceService
+
+    Note over V,A: 전역 AccessGuard(JWT·IP·역할)를 통과한 뒤 실행 — 03번 참고
+    V->>A: GET /api/dashboard/issues (scope 생략 = 본인, 리드는 scope=team 가능)
+    break scope=team인데 리드가 아니면
+        A-->>V: 403 FORBIDDEN
+    end
+    A->>S: issues(user, scope)
+    S->>AT: findMissing(오늘, userId) — 지난 날 중 퇴근이 비어 있는 기록
+    S->>AT: findManualEntries(오늘, userId) — 최근 30일 안에 퇴근을 직접 입력한 기록
+    S-->>V: missing 목록, manual 목록
+    V-->>U: 미기록 목록 (행마다 [직접 입력] 버튼) + 최근 직접 입력 내역
+    U->>V: [직접 입력] 클릭
+    Note over V: 퇴근 시각 직접 입력 창이 열린다 — 07번

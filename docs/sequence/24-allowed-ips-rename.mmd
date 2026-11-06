@@ -1,0 +1,25 @@
+---
+title: 24 연구실 접속 IP 이름 수정 (리드 전용)
+---
+sequenceDiagram
+    autonumber
+    actor U as 리드
+    participant V as 화면 (AllowedIpsView)
+    participant A as AllowedIpsController
+    participant S as AllowedIpsService
+    participant D as DataStore
+    participant L as ActivityLog
+
+    Note over V,A: 전역 AccessGuard를 통과한 뒤 실행 (03번). 컨트롤러 전체가 @Roles('LEAD')
+    U->>V: IP 행의 이름을 눌러 수정 후 저장
+    V->>A: PATCH /api/allowed-ips/:id (label)
+    A->>S: rename(user, 접속 IP, id, label)
+    S->>D: id로 IP 조회
+    break 등록된 IP가 없으면
+        S-->>V: 404 IP_NOT_FOUND
+    end
+    S->>D: 이름(label) 변경 (비우면 이름 없음)
+    S->>D: commit() 파일 저장
+    S->>L: IP_UPDATE
+    S-->>V: 200 id, ip, label, current
+    V->>V: 목록 다시 불러오기

@@ -1,0 +1,26 @@
+---
+title: 13 신청 목록 조회
+---
+sequenceDiagram
+    autonumber
+    actor U as 사용자
+    participant V as 화면 (ApplicationsView)
+    participant A as ApplicationController
+    participant S as ApplicationService
+    participant H as HolidayService
+    participant D as DataStore
+
+    Note over V,A: 전역 AccessGuard(JWT·IP·역할)를 통과한 뒤 실행 — 03번 참고
+    U->>V: 신청 화면 열기 / 범위(내 신청·팀 신청), 월, 상태 필터 변경
+    V->>A: GET /api/applications?scope&month&status
+    A->>S: list(user, scope, month, status)
+    break scope=team인데 리드가 아니면
+        S-->>V: 403 FORBIDDEN
+    end
+    S->>D: 조건에 맞는 신청 조회 (대상일 내림차순, 최대 300건)
+    S->>H: 영업일 판별 함수 준비
+    loop 신청마다
+        S->>S: 신청 기한(전 영업일 17:00), canCancel(본인·유효·기한 전), canDecide(리드·타인·대기) 계산
+    end
+    S-->>V: 신청 목록
+    V-->>U: 목록 표시 — 상태에 맞는 버튼만 노출 (취소 / 승인·반려 / PDF)
