@@ -63,11 +63,17 @@
 
 **빠른 준비** — 스크립트 하나(`scripts/setup.mjs`)가 GitHub에서 내려받기, `.env` 복사, 의존성 설치를 한 번에 합니다. 외부 패키지 없이 Node와 git만 쓰므로 Windows·macOS·Linux에서 같게 동작합니다.
 
-```bash
-# 아무것도 없는 상태에서: 스크립트 파일 하나만 받아 실행 (Windows PowerShell은 curl.exe)
-curl -fsSLO https://raw.githubusercontent.com/lsh34206/TA/main/scripts/setup.mjs
-node setup.mjs --clone --install     # git clone → TA 폴더 → .env 복사 → npm install
+**GitHub에서 내려받지 않고 바로 로컬에서 실행하기 (명령 프롬프트 cmd)** — 스크립트 파일 하나만 받아 실행하면, 저장소 내려받기(`git clone`)와 `.env` 복사까지 스크립트가 알아서 합니다. 저장소를 미리 받아 둘 필요가 없습니다.
 
+```cmd
+curl -fsSLO https://raw.githubusercontent.com/lsh34206/TA/main/scripts/setup.mjs && node setup.mjs --clone
+```
+
+현재 위치에 `TA` 폴더가 만들어지고 `backend/.env`가 준비됩니다. 필요한 것은 Node.js, git, curl(Windows 10 이후 기본 포함)입니다. `npm install`까지 한 번에 하려면 끝에 `--install`을 붙입니다(`node setup.mjs --clone --install`).
+
+macOS·Linux·Git Bash는 같은 명령을 그대로 쓰면 됩니다. PowerShell은 `curl`이 다른 명령의 별칭이라 `curl.exe`로 쓰고, 5.1 버전은 `&&`를 지원하지 않으므로 두 줄로 나눠 실행하세요.
+
+```bash
 # 이미 git clone 했다면: 저장소 안에서
 node scripts/setup.mjs --install     # 또는: npm run setup:install
 ```
