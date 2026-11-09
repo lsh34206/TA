@@ -1,5 +1,7 @@
 # Logs
-logs
+# 맨 앞의 /는 저장소 루트의 logs만 무시한다는 뜻이다.
+# (그냥 logs라고 쓰면 backend/src/logs/ 소스 폴더까지 무시되어 clone 후 빌드가 깨진다)
+/logs
 *.log
 npm-debug.log*
 yarn-debug.log*
